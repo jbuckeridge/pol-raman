@@ -1,0 +1,75 @@
+**************************************************************
+
+    PPP          L    RRR   
+    P   P        L    R   R  
+    PP  P        L    RR  R  
+    PPPP  OOOOO  LL   RRRR   AAAAA  MM   MM  AAAAA  NNNNN 
+    PP    O   O  LL   RR  R     AA  M M M M     AA  N   N 
+    PP    OO  O  LL   RR  R  AA  A  MM M  M  AA  A  NN  N 
+    PP    OOOOO  LLLL RR  R  AAAAA  MM    M  AAAAA  NN  N 
+
+
+j.buckeridge@ucl.ac.uk 2018
+
+**************************************************************
+This program reads in the Raman tensors from the file
+'Raman-Tensors.yaml', which is output from Jonathan Skelton's
+python code Phonopy-Spectroscopy used to calculate Raman 
+intensities (among other stuff!). For each Raman
+active mode, the intensity vs angle theta (t) is calculated for
+incident and reflected light polarised parallel to a user-
+defined plane. That is, we model a back-scattering Raman
+experiment where the plane defined by the user is the reflection
+plane. The intensities are calculated for the polarisation
+direction varied through 360 degrees
+
+I proportional | [a,b,c] R(omega) [a] |^2
+               |                  [b] | 
+               |                  [c] |
+
+where [a,b,c] is a vector parallel to the plane (hkl)
+i.e. perpendicular to [h,k,l]. [a,b,c] is normalised.
+We can then work out values for a,b,c and set an angle
+that is varied (I won't go through the algebra here).
+
+If h^2 + l^2 = 0, then we set b=0 and a=cos(t), c=sin(t)
+etc
+
+Otherwise, c = cos(t) h / sqrt(h^2 + l^2);
+
+b = (-2hklcos(t) - sqrt( 4h^2k^2l^2cos^2(t)/(l^2+h^2) - 
+           4(k^2+h^2)h^2(cos^2(t)-1)) ) / 2(k^2+h^2);
+
+a = sqrt(1 - b^2 - c^2)
+
+The sign of a must be chosen to make sure the vector is 
+parallel to (hkl). Note that the minus sign has been chosen
+preceding the sqrt in the denominator of b.
+
+**************************************************************
+
+Installation: compile with any fortran compiler. No libraries
+necessary.
+
+The input is the file "Raman-Tensors.yaml", produced by the 
+Phonopy-Spectrum suite of python scripts by Jonathan Skelton
+(available on github). The user then defines the plane at which
+the backscattering occurs, and the Raman intensities are 
+calculated for the plane-polarised incident and reflected beams,
+where the polarisation direction (which is parallel to the plane)
+is varied through 360 degrees. The code tells you which direction
+theta=0 and theta=pi/2 corresponds to, so that appropriate
+shifts can be applied to the results if necessary (the user needs
+to do this for now!). 
+
+The results consist of a set of files modeXX.dat, where XX is 
+the mode index. The files contain the intensities versus theta,
+where theta is varied between 0 and 360 degrees.
+
+Any questions etc please email me.
+
+J. Buckeridge Dec. 2018
+
+******
+MIT Open Source Licence
+******
