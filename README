@@ -46,6 +46,18 @@ The sign of a must be chosen to make sure the vector is
 parallel to (hkl). Note that the minus sign has been chosen
 preceding the sqrt in the denominator of b.
 
+We also need to take care if h = 0. In that case, b is defin-
+ed in terms of a rather than c, and we have
+
+a = cos(t) l / sqrt(h^2 + l^2);
+ 
+b = (-2hklcos(t)/sqrt(h^2+l^2) 
+            - sqrt( 4h^2k^2l^2cos^2(t)/(l^2+h^2) - 
+           4(k^2+l^2)l^2(cos^2(t)-1)) ) / 2(k^2+l^2);
+
+c = sqrt(1 - b^2 - a^2)
+
+
 **************************************************************
 
 Installation: compile with any fortran compiler. No libraries

@@ -25,7 +25,8 @@ program pol_raman
 !
 ! Otherwise, c = cos(t) h / sqrt(h^2 + l^2);
 ! 
-! b = (-2hklcos(t) - sqrt( 4h^2k^2l^2cos^2(t)/(l^2+h^2) - 
+! b = (-2hklcos(t)/sqrt(h^2+l^2) 
+!             - sqrt( 4h^2k^2l^2cos^2(t)/(l^2+h^2) - 
 !            4(k^2+h^2)h^2(cos^2(t)-1)) ) / 2(k^2+h^2);
 !
 ! a = sqrt(1 - b^2 - c^2)
@@ -33,6 +34,19 @@ program pol_raman
 ! The sign of a must be chosen to make sure the vector is 
 ! parallel to (hkl). Note that the minus sign has been chosen
 ! preceding the sqrt in the denominator of b.
+!
+! Also, if h = 0, then we need to redo the derivation, so 
+! that b is in terms of a, not c. We then have:
+!
+! a = cos(t) l / sqrt(h^2 + l^2);
+! 
+! b = (-2hklcos(t)/sqrt(h^2+l^2) 
+!             - sqrt( 4h^2k^2l^2cos^2(t)/(l^2+h^2) - 
+!            4(k^2+l^2)l^2(cos^2(t)-1)) ) / 2(k^2+l^2);
+!
+! c = sqrt(1 - b^2 - a^2)
+!
+!
 !
 ! J. Buckeridge Dec. 2018
 !
@@ -55,7 +69,7 @@ program pol_raman
   character*3 tmpstr5
   character*20 filename
 !
-  pi = acos(-1.0)
+  pi = acos(-1.d0)
 !
   write(*,'(a)') "**************************************************************"
   write(*,'(a)') 
@@ -124,6 +138,10 @@ program pol_raman
      write(*,'(a)') "ERROR reading in miller indices!"
      stop
   endif
+  if( hi == 0 .and. ki == 0 .and. li == 0 ) then
+     write(*,'(a)') "ERROR: (000) is not a valid set of planes!"
+     stop
+  endif
   write(*,*)
   hval=real(hi)
   kval=real(ki)
@@ -171,27 +189,58 @@ program pol_raman
   else
      do i=1,maxang+1
         theta = real(i-1) * pi / 180.d0
-        cval(i) = hval * cos(theta) / sqrt(hval**2 + lval**2)
-        bval(i) = 4.d0 * hval**2 * kval**2 * lval**2 * cos(theta)**2 / (hval**2 + lval**2)
-        bval(i) = bval(i) - 4.d0 * (hval**2 + kval**2) * hval**2 * (cos(theta)**2 - 1.d0)
-        if(abs(bval(i)) < small) bval(i) = 0.d0
-        bval(i) = sqrt(bval(i))
-        bval(i) = -2.d0 * hval * kval * lval * cos(theta) / sqrt(hval**2 + lval**2) - bval(i)
-        bval(i) = bval(i) / (2.d0 * (kval**2 + hval**2))
-        aval(i) = 1.d0 - bval(i)**2 - cval(i)**2
-        if(abs(aval(i)) < small) aval(i) = 0.d0
-        aval(i) = sqrt(aval(i))
+!
+! Check if h = 0
+!
+        if( abs(hval) > small ) then
+           cval(i) = hval * cos(theta) / sqrt(hval**2 + lval**2)
+           bval(i) = 4.d0 * hval**2 * kval**2 * lval**2 * cos(theta)**2 / (hval**2 + lval**2)
+           bval(i) = bval(i) - 4.d0 * (hval**2 + kval**2) * hval**2 * (cos(theta)**2 - 1.d0)
+           if(abs(bval(i)) < small) bval(i) = 0.d0
+           bval(i) = sqrt(bval(i))
+           bval(i) = -2.d0 * hval * kval * lval * cos(theta) / sqrt(hval**2 + lval**2) - bval(i)
+           bval(i) = bval(i) / (2.d0 * (kval**2 + hval**2))
+           aval(i) = 1.d0 - bval(i)**2 - cval(i)**2
+           if(abs(aval(i)) < small) aval(i) = 0.d0
+           aval(i) = sqrt(aval(i))
 !
 ! Need to check that the aval is correct - it may need a minus sign
 !
-        test4 = hval * aval(i) + kval * bval(i) + lval * cval(i)
-        if( abs(test4) > small ) then
-           aval(i) = -aval(i)
-        endif
-        test4 = hval * aval(i) + kval * bval(i) + lval * cval(i)
-        if( abs(test4) > small ) then
-           write(*,'(a)') "Hmmm not sure what's going wrong here :("
-           stop
+           test4 = hval * aval(i) + kval * bval(i) + lval * cval(i)
+           if( abs(test4) > small ) then
+              aval(i) = -aval(i)
+           endif
+           test4 = hval * aval(i) + kval * bval(i) + lval * cval(i)
+           if( abs(test4) > small ) then
+              write(*,'(a19,i4,x,a32)') "Hmmm, odd vector at", i-1, &
+                   &"degrees, results should be ok..."
+           endif
+        else
+!
+! H = 0, then we need to define b in terms of a, not c and set a
+!
+           aval(i) = lval * cos(theta) / sqrt(hval**2 + lval**2)
+           bval(i) = 4.d0 * hval**2 * kval**2 * lval**2 * cos(theta)**2 / (hval**2 + lval**2)
+           bval(i) = bval(i) - 4.d0 * (kval**2 + lval**2) * lval**2 * (cos(theta)**2 - 1.d0)
+           if(abs(bval(i)) < small) bval(i) = 0.d0
+           bval(i) = sqrt(bval(i))
+           bval(i) = -2.d0 * hval * kval * lval * cos(theta) / sqrt(hval**2 + lval**2) - bval(i)
+           bval(i) = bval(i) / (2.d0 * (kval**2 + lval**2))
+           cval(i) = 1.d0 - bval(i)**2 - aval(i)**2
+           if(abs(cval(i)) < small) cval(i) = 0.d0
+           cval(i) = sqrt(cval(i))
+!
+! Need to check that the aval is correct - it may need a minus sign
+!
+           test4 = hval * aval(i) + kval * bval(i) + lval * cval(i)
+           if( abs(test4) > small ) then
+              cval(i) = -cval(i)
+           endif
+           test4 = hval * aval(i) + kval * bval(i) + lval * cval(i)
+           if( abs(test4) > small ) then
+              write(*,'(a19,i4,x,a32)') "Hmmm, odd vector at", i-1, &
+                   &"degrees, results should be ok..."
+           endif
         endif
      enddo
      write(*,'(a)') "Polarisation direction at theta = 0 :"
